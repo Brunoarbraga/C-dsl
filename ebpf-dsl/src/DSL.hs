@@ -168,6 +168,7 @@ factorial = do
   writeOutput s 
   printStr "\n"
 
+
 -- Code generation monad
 type Code = WriterT [Stmt] (State Unique)
 

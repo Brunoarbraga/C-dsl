@@ -1,17 +1,18 @@
 #include <stdio.h>
 
 int main() {
-    int  r0 = 0 ;
-    printf( "Please enter 4 numbers\n" );
-    for(int v1  = 0; v1 < 4 ; v1 ++){
-        int  v2 ;
-        scanf("%d", & v2 );
+    int  r0 = 1 ;
+    printf( "Enter the number:" );
+    int  v1 ;
+    scanf("%d", & v1 );
+    printf( "\n" );
+    for(int v2  = 0; v2 < v1 ; v2 ++){
         int  v3 = r0 ;
-        r0 = v3 + v2 ;
+        r0 = v3 * v2 + 1 ;
     }
-    printf( "The sum of your numbers is " );
+    printf( "The result factorial is:" );
     int  v4 = r0 ;
     printf("%d", v4 );
-    printf( ".\n" );
+    printf( "\n" );
   return 0;
 }
