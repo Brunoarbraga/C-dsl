@@ -7,7 +7,7 @@ int main() {
         int  v2 ;
         scanf("%d", & v2 );
         int  v3 = r0 ;
-        r0 = v3 + v2 ;
+        r0 = (v3 + v2) ;
     }
     printf( "The sum of your numbers is " );
     int  v4 = r0 ;

@@ -223,7 +223,7 @@ bracket s = "(" ++ s ++ ")"
 showExp :: Exp a -> String
 showExp (Var v)   = v
 showExp (Lit a)   = show a
-showExp (Add a b) = showExp a ++ " + " ++ showExp b
+showExp (Add a b) = bracket (showExp a ++ " + " ++ showExp b)
 showExp (Mul a b) = showExp a ++ " * " ++ showExp b
 showExp (Not a)   = "!" ++ showExp a
 showExp (EEq a b) = showExp a ++ " == " ++ showExp b
