@@ -2,6 +2,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE Rank2Types #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE DataKinds #-}
+
 
 
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
@@ -12,6 +14,10 @@ import Control.Monad.Writer
 import Control.Monad.State
 import Data.Int
 import Data.IORef
+import ListSearch
+import Hlist (HList (HNil), hCreate, hAdd)
+import GHC.TypeLits (Symbol)
+import Data.Proxy
 
 
 data Prog a where
@@ -44,13 +50,14 @@ data CMD a where
   -- Loops:
   For :: Exp Int32 -> (Val Int32 -> Prog ()) -> CMD ()
 
+
 data Exp a where
   Var :: Type a => VarId -> Exp a
   Lit :: Type a => a -> Exp a
   Add :: (Num a, Type a) => Exp a -> Exp a -> Exp a
   Mul :: (Num a, Type a) => Exp a -> Exp a -> Exp a
   Not :: Exp Bool -> Exp Bool
-  EEq  :: Type a => Exp a -> Exp a -> Exp Bool
+  EEq  :: Type a => Exp a -> Exp a -> Exp Bool 
 
 instance (Num a, Type a) => Num (Exp a) where
   fromInteger = Lit . fromInteger
@@ -58,9 +65,26 @@ instance (Num a, Type a) => Num (Exp a) where
   (*) = Mul
 
 
+------------------------------------------------
+--(.:) :: Record g -> Field s g a -> a
+--(.:) rec field = fieldLookup field rec
+
+
+(.:) :: Record g -> Field s g a -> (Record g, Field s g a)
+(.:) rec field = (rec, field)
+
+(.=) :: (Record g, Field s g a) -> Exp a -> Record g
+(.=) (list, field) expr = fieldUpdate list field (evalExp expr)
+
+example5 :: Record '[ '("nome", String), '("idade", Int)]
+example5 = example3 .: (The (Name :: Name "nome")) .= Lit "Gabriel" 
+------------------------------------------------
+
+
 class CType a 
 
 instance CType Int32
+instance CType [Char]
 
 class    (Eq a, Ord a, Show a, CType a) => Type a
 instance (Eq a, Ord a, Show a, CType a) => Type a
@@ -145,6 +169,8 @@ modifyRef r f = setRef r . f =<< getRef r
 
 sumInput :: Prog ()
 sumInput = do
+  lista <- hAdd (Proxy :: Proxy "idade") 20 HNil
+  lista .: (The (Name :: Name "idade")) .= 30
   r <- initRef 0
   printStr "Please enter 4 numbers\n"
   for 4 $ \ _ -> do
@@ -215,6 +241,7 @@ codeCMD (For n body) = do
 instance Show (Val a) where show (ValComp a) = a
 instance Show (Ref a) where show (RefComp r) = r
 instance Show a => Show (Exp a)
+
 
 bracket :: String -> String
 bracket s = "(" ++ s ++ ")"
