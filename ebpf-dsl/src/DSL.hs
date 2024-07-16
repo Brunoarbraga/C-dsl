@@ -14,10 +14,10 @@ import Control.Monad.Writer
 import Control.Monad.State
 import Data.Int
 import Data.IORef
-import ListSearch
-import Hlist (HList (HNil), hCreate, hAdd)
-import GHC.TypeLits (Symbol)
-import Data.Proxy
+--import ListSearch
+--import Hlist (HList (HNil), hCreate, hAdd)
+--import GHC.TypeLits (Symbol)
+--import Data.Proxy
 
 
 data Prog a where
@@ -50,6 +50,8 @@ data CMD a where
   -- Loops:
   For :: Exp Int32 -> (Val Int32 -> Prog ()) -> CMD ()
 
+  -- Function calls
+  Funcall :: Type a => Exp String -> [Exp a] -> CMD () 
 
 data Exp a where
   Var :: Type a => VarId -> Exp a
@@ -58,27 +60,13 @@ data Exp a where
   Mul :: (Num a, Type a) => Exp a -> Exp a -> Exp a
   Not :: Exp Bool -> Exp Bool
   EEq  :: Type a => Exp a -> Exp a -> Exp Bool 
+  
 
 instance (Num a, Type a) => Num (Exp a) where
   fromInteger = Lit . fromInteger
   (+) = Add
   (*) = Mul
 
-
-------------------------------------------------
---(.:) :: Record g -> Field s g a -> a
---(.:) rec field = fieldLookup field rec
-
-
-(.:) :: Record g -> Field s g a -> (Record g, Field s g a)
-(.:) rec field = (rec, field)
-
-(.=) :: (Record g, Field s g a) -> Exp a -> Record g
-(.=) (list, field) expr = fieldUpdate list field (evalExp expr)
-
-example5 :: Record '[ '("nome", String), '("idade", Int)]
-example5 = example3 .: (The (Name :: Name "nome")) .= Lit "Gabriel" 
-------------------------------------------------
 
 
 class CType a 
@@ -123,6 +111,7 @@ runCMD (Write a)             = putStr $ show $ evalExp a
 runCMD (PrintStr s)          = putStr s
 runCMD (For n body)          =
     mapM_ (runIO . body . ValRun) [0 .. evalExp n - 1]
+runCMD (Funcall name arguments) = undefined
 runCMD _ = error "Impossible! Invalid program construction"
 
 evalExp :: Exp a -> a 
@@ -161,6 +150,9 @@ printStr = CMD . PrintStr
 for :: Exp Int32 -> (Exp Int32 -> Prog ()) -> Prog ()
 for n body = CMD $ For n (body . valToExp)
 
+funCall :: (Ord a, Show a, CType a) => Exp String -> [Exp a] -> Prog ()
+funCall name arguments = CMD $ Funcall name arguments
+
 
 modifyRef :: Type a => Ref a -> (Exp a -> Exp a) -> Prog ()
 modifyRef r f = setRef r . f =<< getRef r
@@ -169,8 +161,6 @@ modifyRef r f = setRef r . f =<< getRef r
 
 sumInput :: Prog ()
 sumInput = do
-  lista <- hAdd (Proxy :: Proxy "idade") 20 HNil
-  lista .: (The (Name :: Name "idade")) .= 30
   r <- initRef 0
   printStr "Please enter 4 numbers\n"
   for 4 $ \ _ -> do
@@ -235,6 +225,8 @@ codeCMD (For n body) = do
    stmt $ unwords ["for(int", show i, " = 0;", show i , "<", showExp n, ";" , show i, "++){"]
    indent $ code (body i)
    stmt "}"
+codeCMD (Funcall name arguments) = do
+  stmt $ unwords [show name, "(", show arguments, ");"]
 
 
 
