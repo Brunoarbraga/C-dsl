@@ -7,14 +7,21 @@
 
 
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use camelCase" #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 
 module DSL where
 
 import Control.Monad.Writer
 import Control.Monad.State
 import Data.Int
+
+import Data.Dynamic
 import Data.IORef
---import ListSearch
+import Data.Word
+import Hlist (HList (HNil))
+import ListSearch
 --import Hlist (HList (HNil), hCreate, hAdd)
 --import GHC.TypeLits (Symbol)
 --import Data.Proxy
@@ -50,8 +57,24 @@ data CMD a where
   -- Loops:
   For :: Exp Int32 -> (Val Int32 -> Prog ()) -> CMD ()
 
+  -- Conditional
+  If :: Exp Bool -> Prog () -> Prog() -> CMD ()
+
   -- Function calls
+
   Funcall :: Type a => Exp String -> [Exp a] -> CMD () 
+  -- Example 2 (portfilter.c)
+
+  Funprocess_packet :: HList a -> Word64 -> CMD () -- Int
+  Funpfilter :: HList a -> CMD ()
+  Funbpf_htons :: Word16 -> CMD ()
+  Funreturn :: CMD ()
+
+  -- Example 3 (xdp1_user.c)
+  FunInt_Exit :: String -> Int -> CMD ()
+  FunPoll_Stats :: String -> Int -> Int -> CMD ()
+  FunUsage :: String -> Char -> CMD ()
+
 
 data Exp a where
   Var :: Type a => VarId -> Exp a
@@ -111,7 +134,8 @@ runCMD (Write a)             = putStr $ show $ evalExp a
 runCMD (PrintStr s)          = putStr s
 runCMD (For n body)          =
     mapM_ (runIO . body . ValRun) [0 .. evalExp n - 1]
-runCMD (Funcall name arguments) = undefined
+runCMD (If condition exp1 exp2) = do
+  if evalExp condition then runIO exp1 else runIO exp2 
 runCMD _ = error "Impossible! Invalid program construction"
 
 evalExp :: Exp a -> a 
@@ -150,9 +174,10 @@ printStr = CMD . PrintStr
 for :: Exp Int32 -> (Exp Int32 -> Prog ()) -> Prog ()
 for n body = CMD $ For n (body . valToExp)
 
-funCall :: (Ord a, Show a, CType a) => Exp String -> [Exp a] -> Prog ()
-funCall name arguments = CMD $ Funcall name arguments
-
+-- If with else
+if1 :: Exp Bool -> Prog () -> Prog () -> Prog ()
+if1 condition exp1 exp2 = CMD (If condition exp1 exp2)
+ 
 
 modifyRef :: Type a => Ref a -> (Exp a -> Exp a) -> Prog ()
 modifyRef r f = setRef r . f =<< getRef r
@@ -163,7 +188,7 @@ sumInput :: Prog ()
 sumInput = do
   r <- initRef 0
   printStr "Please enter 4 numbers\n"
-  for 4 $ \ _ -> do
+  for 10 $ \ _ -> do
     n <- readInput
     modifyRef r (+n)
   printStr "The sum of your numbers is "
@@ -225,8 +250,16 @@ codeCMD (For n body) = do
    stmt $ unwords ["for(int", show i, " = 0;", show i , "<", showExp n, ";" , show i, "++){"]
    indent $ code (body i)
    stmt "}"
-codeCMD (Funcall name arguments) = do
-  stmt $ unwords [show name, "(", show arguments, ");"]
+codeCMD (If condition exp1 exp2) = do
+    stmt $ "if (" ++ showExp condition ++ ") {"
+    indent $ code exp1
+    stmt "}"
+    stmt "else {"
+    indent $ code exp2
+    stmt "}"
+codeCMD (Funprocess_packet ctx off) = do
+  stmt $ unwords ["process_packet(", show off, ");"]
+
 
 
 
@@ -270,3 +303,23 @@ code = interpret codeCMD
 -- Generate C code from Prog
 generateC :: Prog a -> String
 generateC prog = runCode (code prog)
+
+
+-- process_packet :: Exp (HList a) -> Exp Integer -> Prog ()
+-- process_packet ctx off = do
+
+--   data_end <- initRef (Lit $ toDyn 0)
+--   data_ptr <- initRef (Lit $ toDyn 0)
+
+--   tcp <- initRef (Lit $ HNil)
+--   iph <- initRef (Lit $ HNil)
+--   payload_len <- initRef (Lit 0)
+--   protocol <- initRef (Lit 0)
+
+
+--   --Como o modifyRef só aceita funções parciais do tipo (Exp a -> Exp a),
+--   --precisamos guardar o valor de data_ptr primeiro, para depois aplicar a função parcial com o off
+--   iph <- getRef data_ptr
+--   modifyRef iph ( `Add` off)
+
+ 

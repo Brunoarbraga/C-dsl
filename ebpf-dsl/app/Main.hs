@@ -1,14 +1,14 @@
 module Main where
 
-import DSL
-import FileGen
-import ListSearch
-import Hlist (hCreate)
+import Quickcheck
+import Test.QuickCheck 
 
 
 
 main :: IO ()
 main = do
+  iphdr <- generate (arbitrary :: Gen Tcphdr)
+  print iphdr
   --writeCFile "fact.c" factorial
   --writeCFile "sum.c" sumInput
   return ()

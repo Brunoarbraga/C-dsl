@@ -27,7 +27,7 @@ type family ShowAll (ts :: [(Symbol, Type)]) :: Constraint where
 
 instance ShowAll ts => Show (HList ts) where 
   show HNil = "[]"
-  show (p :# ps) = show p ++ ":" ++ show ps
+  show (p :# ps) = show p ++ ":\n" ++ show ps
 
 -- type level pair, for using with HList 
 

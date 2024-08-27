@@ -10,6 +10,16 @@
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_ebpf_dsl */
+/* package QuickCheck-2.14.3 */
+#ifndef VERSION_QuickCheck
+#define VERSION_QuickCheck "2.14.3"
+#endif /* VERSION_QuickCheck */
+#ifndef MIN_VERSION_QuickCheck
+#define MIN_VERSION_QuickCheck(major1,major2,minor) (\
+  (major1) <  2 || \
+  (major1) == 2 && (major2) <  14 || \
+  (major1) == 2 && (major2) == 14 && (minor) <= 3)
+#endif /* MIN_VERSION_QuickCheck */
 /* package base-4.17.2.1 */
 #ifndef VERSION_base
 #define VERSION_base "4.17.2.1"
